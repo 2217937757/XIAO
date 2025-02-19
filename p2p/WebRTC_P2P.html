@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebRTC P2P</title>
+  <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body>
+  <h1>WebRTC P2P 连接</h1>
+  <p>等待连接...</p>
+
+  <script>
+    const socket = io('http://47.113.186.186:3000');  // 替换为你的信令服务器地址
+    let peerConnection;
+    let iceCandidates = [];
+
+    // 创建 WebRTC PeerConnection
+    function createPeerConnection() {
+      const configuration = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }  // Google 的 STUN 服务器
+        ]
+      };
+      peerConnection = new RTCPeerConnection(configuration);
+
+      // ICE 候选
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', event.candidate);  // 向信令服务器发送 ICE 候选
+        }
+      };
+
+      // 监听 ICE 连接状态变化
+      peerConnection.oniceconnectionstatechange = () => {
+        console.log('ICE connection state: ', peerConnection.iceConnectionState);
+      };
+    }
+
+    // 开始连接
+    function startConnection() {
+      createPeerConnection();
+
+      peerConnection.createOffer()
+        .then(offer => {
+          return peerConnection.setLocalDescription(offer);
+        })
+        .then(() => {
+          socket.emit('offer', peerConnection.localDescription);  // 向信令服务器发送 offer
+        })
+        .catch(err => {
+          console.error('创建 offer 失败：', err);
+        });
+    }
+
+    // 处理信令服务器发送的 offer
+    socket.on('offer', (offer) => {
+      createPeerConnection();
+
+      peerConnection.setRemoteDescription(new RTCSessionDescription(offer))
+        .then(() => {
+          return peerConnection.createAnswer();  // 创建 answer
+        })
+        .then((answer) => {
+          return peerConnection.setLocalDescription(answer);
+        })
+        .then(() => {
+          socket.emit('answer', peerConnection.localDescription);  // 向信令服务器发送 answer
+        })
+        .catch(err => {
+          console.error('处理 offer 失败：', err);
+        });
+    });
+
+    // 处理信令服务器发送的 answer
+    socket.on('answer', (answer) => {
+      peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    });
+
+    // 处理 ICE 候选
+    socket.on('ice-candidate', (candidate) => {
+      peerConnection.addIceCandidate(new RTCIceCandidate(candidate))
+        .catch(err => {
+          console.error('添加 ICE candidate 失败：', err);
+        });
+    });
+
+    // 启动连接
+    startConnection();
+  </script>
+</body>
+</html>
