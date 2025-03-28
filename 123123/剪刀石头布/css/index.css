@@ -1,0 +1,33 @@
+body{
+    margin: 0;
+    padding: 0;
+    text-align: center;
+}
+.waiquan{
+    display: flex;
+    justify-content: center;
+}
+img{
+    border: solid 3px #ccc;
+    border-radius: 14px;
+    width: auto;
+    height: auto;
+    max-width: 90%;
+    max-height: 90%;
+}
+#wanjia{
+    font-size: 20px;
+}
+#diannao{
+    font-size: 20px;
+}
+#anniu{
+    margin-top: 10px;
+}
+input{
+    width: 80px;
+    border-radius: 10px;
+}
+#span{
+    font-size: 40px;
+}
